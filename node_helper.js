@@ -9,6 +9,7 @@
 const NodeHelper = require('node_helper');
 const Gpio = require('onoff').Gpio;
 const fs = require('fs');
+const path = require('path');
 
 module.exports = NodeHelper.create({
   start: function () {
@@ -44,19 +45,20 @@ module.exports = NodeHelper.create({
         let pinNumber = payload.pinNumber;
         let desiredState = payload.state;
         // If unblocOnNotification is present
-        if (payload.unblockOnNotification != "undefined") {
+        if (payload.unblockOnNotification != undefined) {
             // Check if lock for it already exists
-            lockFile = path.resolve(__dirname, pinNumber.concat("-pin.lock"));
-            if (!fs.existsSync(lockfile)) {
+	    console.log(path.join(__dirname,pinNumber + "-pin.lock"));
+            let lockFile = path.join(__dirname, pinNumber + "-pin.lock");
+            if (!fs.existsSync(lockFile)) {
                 // If not create it
-                fs.writeFile(lockfile, unblockOnNotification, function (err) {
+                fs.writeFile(lockFile, payload.unblockOnNotification, function (err) {
                     if (err) throw err;
                 })
             }
         } else {
             // if lockfile exists
-            if (fs,existsSync(path.resolve(__dirname, pinNumber.concat("-pin.lock")))) {
-                unblockNotification = fs.readFileSync(lockFile);
+            if (fs.existsSync(path.join(__dirname, pinNumber + "-pin.lock"))) {
+                let unblockNotification = fs.readFileSync(lockFile);
                 // if do contain unblockOnNotification notification
                 if (payload.unblockNotification == unblockNotification) {
                     // do change state
