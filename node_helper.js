@@ -44,10 +44,10 @@ module.exports = NodeHelper.create({
     } else if (notification === 'SET_PIN_STATE') {
         let pinNumber = payload.pinNumber;
         let desiredState = payload.state;
-        // If unblocOnNotification is present
-        if (payload.unblockOnNotification != undefined) {
+        // If unblocOnNotification is set
+        if (payload.unblockOnNotification != "undefined") {
             // Check if lock for it already exists
-	    console.log(path.join(__dirname,pinNumber + "-pin.lock"));
+            console.log(path.join(__dirname,pinNumber + "-pin.lock"));
             let lockFile = path.join(__dirname, pinNumber + "-pin.lock");
             if (!fs.existsSync(lockFile)) {
                 // If not create it

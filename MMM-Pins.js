@@ -45,7 +45,6 @@ Module.register('MMM-Pins',{
                       "pinNumber": pinConfig.pin,
                       "unblockOnNotification": pinConfig.unblockOnNotification,
                     }
-		    console.log("Sending SET_PIN_STATE Notification")
                     this.sendSocketNotification("SET_PIN_STATE", this.config);
                 }    
 				if(pinConfig.sound){
