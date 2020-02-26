@@ -33,19 +33,20 @@ Module.register('MMM-Pins',{
 		for (let index = 0; index < this.config.pinConfiguration.length; ++index) {
                         let pinConfig = this.config.pinConfiguration[index];
 			if(pinConfig.notification === notification){
-                if (pinConfig.state == "undefined") {
-                    this.config = {
+                if (pinConfig.state == undefined) {
+                    nodeConfig = {
                       "pin": pinConfig.pin,
                       "unblockOnNotification": pinConfig.unblockOnNotification,
                     }
 				    this.sendSocketNotification("TOGGLE_PIN", pinConfig.pin);
                 } else {
-                    this.config = {
+                    nodeConfig = {
                       "state" : pinConfig.state,
                       "pinNumber": pinConfig.pin,
                       "unblockOnNotification": pinConfig.unblockOnNotification,
+		      "notification": notification
                     }
-                    this.sendSocketNotification("SET_PIN_STATE", this.config);
+                    this.sendSocketNotification("SET_PIN_STATE", nodeConfig);
                 }    
 				if(pinConfig.sound){
 					this.sendNotification('PLAY_SOUND', pinConfig.sound);
