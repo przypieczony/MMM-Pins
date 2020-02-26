@@ -16,6 +16,47 @@ module.exports = NodeHelper.create({
         this.started = false;
 },
 
+  lockPin: function(payload) {
+	  var self = this
+	  let pinNumber = payload.pinNumber
+	  let pin = self.gpio[String(pinNumber)];
+	  let releaseNotification = payload.unblockOnNotification
+	  let lockFile = path.join(__dirname, pinNumber + "-pin.lock");
+
+	  if (releaseNotification != undefined) {
+		if (!fs.existsSync(lockFile)) {
+                	fs.writeFile(lockFile, releaseNotification, function (err) {
+                    		if (err) throw err;
+               		})
+			return true;
+		}
+	  } else {
+		// Pin already locked or no need to lock it
+		return false;
+	  }
+  },
+
+  getLockFile: function(lockFile) {
+    	if (fs.existsSync(lockFile)) {
+		return fs.readFileSync(lockFile);
+	} else {
+		return false
+	}
+  },
+
+  togglePin: function(pinNumber) {
+	var self = this
+	let pin = self.gpio[String(pinNumber)];
+	let value = pin.readSync();
+	if (value !== 1) {
+		value = 1;
+	} else {
+		value = 0;
+	}
+	pin.writeSync(value);
+	console.log(`Pin ${pinNumber} switched to ${value}`);
+  },
+
   socketNotificationReceived: function(notification, payload) {
 	const self = this
     if (notification === 'PIN_CONFIG' && self.started === false) {
@@ -30,60 +71,48 @@ module.exports = NodeHelper.create({
 	  self.started = true;				
 	}
     else if (notification === 'TOGGLE_PIN') {     
-		let pinNumber = payload;	  
-		let pin = self.gpio[String(pinNumber)];
-		let value = pin.readSync();
-		if (value !== 1) {
-			value = 1;
+		let pinNumber = payload.pinNumber;
+	        let incomingNotification = payload.notification
+	        let lockFile = path.join(__dirname, pinNumber + "-pin.lock");
+	        if (self.lockPin(payload)) {
+			self.togglePin(pinNumber);
+                    	console.log(`Pin ${pinNumber} locked`);
+		} else {
+			let releaseNotification = self.getLockFile(lockFile)
+			if (releaseNotification == incomingNotification) {
+				self.togglePin(pinNumber);
+				fs.unlinkSync(lockFile);
+                    		console.log(`Pin ${pinNumber} released`);
+			} else if (! releaseNotification) {
+				self.togglePin(pinNumber);
+			}
 		}
-		else{
-			value = 0;
-		}
-		pin.writeSync(value);
-		console.log(`Pin ${pinNumber} switched to ${value}`);
     } else if (notification === 'SET_PIN_STATE') {
         let pinNumber = payload.pinNumber;
         let desiredState = payload.state;
-	let punblockNotification = payload.unblockOnNotification;
         let lockFile = path.join(__dirname, pinNumber + "-pin.lock");
+	let incomingNotification = payload.notification
 	let pin = self.gpio[String(pinNumber)];
 
-	console.log(`${pinNumber} ${desiredState} ${punblockNotification}`);
         // If unblocOnNotification is set
-        if (payload.unblockOnNotification != undefined) {
-            // Check if lock for it already exists
-            if (!fs.existsSync(lockFile)) {
-                // If not create it
-            	console.log("Create lockfile: " + lockFile);
-                fs.writeFile(lockFile, payload.unblockOnNotification, function (err) {
-                    if (err) throw err;
-                })
+	if (self.lockPin(payload)) {
 		pin.writeSync(("low" === desiredState) ? 1:0);
-            }
+                console.log(`Pin ${pinNumber} switched to ${desiredState} and locked`);
         } else {
-            // if lockfile exists
-            console.log('Check if lockfile exists');
-            if (fs.existsSync(lockFile)) {
-            	console.log('lockfile exists');
-                let unblockNotification = fs.readFileSync(lockFile);
-                // if do contain unblockOnNotification notification
-		console.log(`Currrent lock word: ${unblockNotification}`);
-		console.log(payload.notification);
-                if (payload.notification == unblockNotification) {
-                    // do change state
+	    let releaseNotification = self.getLockFile(lockFile)
+	    // if content of lockFile equals to incoming notification...
+            if (incomingNotification == releaseNotification) {
+                    // ...do change state...
                     pin.writeSync(("low" === desiredState) ? 1:0);
-            	    console.log("Remove lockfile: " + lockFile);
+		    // ...and remove lockFile
 		    fs.unlinkSync(lockFile);
                     console.log(`Pin ${pinNumber} switched to ${desiredState} and released`);
-                }
-            } else {
+            } else if (! releaseNotification) {
                 // do change state
-            	console.log('lockfile does not exists. Switchin state');
                 pin.writeSync(("low" === desiredState) ? 1:0);
                 console.log(`Pin ${pinNumber} switched to ${desiredState}`);
             }
         }
     }
   }
-  
 });

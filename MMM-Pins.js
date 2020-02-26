@@ -35,10 +35,11 @@ Module.register('MMM-Pins',{
 			if(pinConfig.notification === notification){
                 if (pinConfig.state == undefined) {
                     nodeConfig = {
-                      "pin": pinConfig.pin,
+                      "pinNumber": pinConfig.pin,
                       "unblockOnNotification": pinConfig.unblockOnNotification,
+		      "notification": notification
                     }
-				    this.sendSocketNotification("TOGGLE_PIN", pinConfig.pin);
+				    this.sendSocketNotification("TOGGLE_PIN", nodeConfig);
                 } else {
                     nodeConfig = {
                       "state" : pinConfig.state,
